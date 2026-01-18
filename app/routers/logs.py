@@ -221,16 +221,6 @@ async def get_logs_presets():
                     "metric": "memory.percent",
                     "value": 85
                 }]
-            },
-            {
-                "name": "Large Log (~1KB)",
-                "description": "Large log entry for testing",
-                "payload": [{
-                    "message": "Large log entry: " + "x" * 900,
-                    "ddsource": "forwardog",
-                    "service": "forwardog-test",
-                    "status": "debug"
-                }]
             }
         ],
         "agent_file_presets": [
