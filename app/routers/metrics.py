@@ -15,7 +15,7 @@ from app.models import (
 )
 from app.services.datadog_client import datadog_client
 from app.services.dogstatsd_client import dogstatsd_client
-from app.services.code_executor import code_executor, DOGSTATSD_EXAMPLES
+from app.services.code_executor import code_executor, get_dogstatsd_examples
 from app.services.history import history_service
 
 
@@ -161,12 +161,13 @@ async def execute_dogstatsd_code(request: CodeExecuteRequest):
 
 
 @router.get("/dogstatsd/examples")
-async def get_dogstatsd_examples():
+async def get_dogstatsd_examples_endpoint():
     """Get DogStatsD Python code examples"""
+    examples = get_dogstatsd_examples()
     return {
         "examples": [
             {"id": key, "name": key.replace("_", " ").title(), "code": code}
-            for key, code in DOGSTATSD_EXAMPLES.items()
+            for key, code in examples.items()
         ]
     }
 

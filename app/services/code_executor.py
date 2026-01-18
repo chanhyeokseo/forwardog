@@ -101,31 +101,35 @@ class CodeExecutor:
 code_executor = CodeExecutor()
 
 
-# Example code templates
-DOGSTATSD_EXAMPLES = {
-    "gauge": '''from datadog import initialize, statsd
+def get_dogstatsd_examples():
+    """Get DogStatsD examples with dynamic host/port from settings"""
+    host = settings.dd_agent_host
+    port = settings.dogstatsd_port
+    
+    return {
+        "gauge": f'''from datadog import initialize, statsd
 
 # Initialize DogStatsD client
-options = {
-    'statsd_host': '127.0.0.1',
-    'statsd_port': 8125
-}
+options = {{
+    'statsd_host': '{host}',
+    'statsd_port': {port}
+}}
 initialize(**options)
 
-# Gauge - Current value (e.g., temperature, memory usage)
+# Gauge - Current value
 statsd.gauge('forwardog.dogstatsd.gauge', 42, tags=['env:test', 'source:forwardog'])
 ''',
-    
-    "counter": '''from datadog import initialize, statsd
+        
+        "counter": f'''from datadog import initialize, statsd
 
 # Initialize DogStatsD client
-options = {
-    'statsd_host': '127.0.0.1',
-    'statsd_port': 8125
-}
+options = {{
+    'statsd_host': '{host}',
+    'statsd_port': {port}
+}}
 initialize(**options)
 
-# Counter - Increment/decrement (e.g., page views, errors)
+# Counter - Increment/decrement
 statsd.increment('forwardog.dogstatsd.counter', tags=['env:test', 'source:forwardog'])
 print("Incremented counter: forwardog.dogstatsd.counter")
 
@@ -133,64 +137,64 @@ print("Incremented counter: forwardog.dogstatsd.counter")
 # statsd.decrement('forwardog.dogstatsd.counter', tags=['env:test'])
 ''',
     
-    "histogram": '''from datadog import initialize, statsd
+        "histogram": f'''from datadog import initialize, statsd
 import random
 
 # Initialize DogStatsD client
-options = {
-    'statsd_host': '127.0.0.1',
-    'statsd_port': 8125
-}
+options = {{
+    'statsd_host': '{host}',
+    'statsd_port': {port}
+}}
 initialize(**options)
 
-# Histogram - Distribution of values (e.g., response times)
+# Histogram - Distribution of values
 for i in range(10):
     value = random.randint(50, 150)
     statsd.histogram('forwardog.dogstatsd.histogram', value, tags=['env:test', 'source:forwardog'])
-    print(f"Sent histogram value: {value}")
+    print(f"Sent histogram value: {{value}}")
 ''',
     
-    "distribution": '''from datadog import initialize, statsd
+        "distribution": f'''from datadog import initialize, statsd
 import random
 
 # Initialize DogStatsD client
-options = {
-    'statsd_host': '127.0.0.1',
-    'statsd_port': 8125
-}
+options = {{
+    'statsd_host': '{host}',
+    'statsd_port': {port}
+}}
 initialize(**options)
 
-# Distribution - Global distribution (similar to histogram but aggregated globally)
+# Distribution
 for i in range(10):
     value = random.gauss(100, 20)  # Normal distribution
     statsd.distribution('forwardog.dogstatsd.distribution', value, tags=['env:test', 'source:forwardog'])
-    print(f"Sent distribution value: {value:.2f}")
+    print(f"Sent distribution value: {{value:.2f}}")
 ''',
     
-    "set": '''from datadog import initialize, statsd
+        "set": f'''from datadog import initialize, statsd
 
 # Initialize DogStatsD client
-options = {
-    'statsd_host': '127.0.0.1',
-    'statsd_port': 8125
-}
+options = {{
+    'statsd_host': '{host}',
+    'statsd_port': {port}
+}}
 initialize(**options)
 
-# Set - Count unique values (e.g., unique users)
+# Set - Count unique values
 statsd.set('forwardog.dogstatsd.unique_users', 'user_123', tags=['env:test', 'source:forwardog'])
 statsd.set('forwardog.dogstatsd.unique_users', 'user_456', tags=['env:test', 'source:forwardog'])
 statsd.set('forwardog.dogstatsd.unique_users', 'user_123', tags=['env:test'])  # Duplicate, won't increase count
 print("Sent 3 set values (2 unique)")
 ''',
     
-    "timing": '''from datadog import initialize, statsd
+        "timing": f'''from datadog import initialize, statsd
 import time
 
 # Initialize DogStatsD client
-options = {
-    'statsd_host': '127.0.0.1',
-    'statsd_port': 8125
-}
+options = {{
+    'statsd_host': '{host}',
+    'statsd_port': {port}
+}}
 initialize(**options)
 
 # Timing - Measure execution time (milliseconds)
@@ -199,17 +203,17 @@ time.sleep(0.1)  # Simulate some work
 elapsed_ms = (time.time() - start) * 1000
 
 statsd.timing('forwardog.dogstatsd.timing', elapsed_ms, tags=['env:test', 'source:forwardog'])
-print(f"Sent timing: {elapsed_ms:.2f}ms")
+print(f"Sent timing: {{elapsed_ms:.2f}}ms")
 ''',
     
-    "timed_decorator": '''from datadog import initialize, statsd
+        "timed_decorator": f'''from datadog import initialize, statsd
 import time
 
 # Initialize DogStatsD client
-options = {
-    'statsd_host': '127.0.0.1',
-    'statsd_port': 8125
-}
+options = {{
+    'statsd_host': '{host}',
+    'statsd_port': {port}
+}}
 initialize(**options)
 
 # Timed decorator - Automatically measure function execution
@@ -219,17 +223,17 @@ def my_function():
     return "done"
 
 result = my_function()
-print(f"Function executed with timing: {result}")
+print(f"Function executed with timing: {{result}}")
 ''',
 
-    "multiple": '''from datadog import initialize, statsd
+        "multiple": f'''from datadog import initialize, statsd
 import random
 
 # Initialize DogStatsD client
-options = {
-    'statsd_host': '127.0.0.1',
-    'statsd_port': 8125
-}
+options = {{
+    'statsd_host': '{host}',
+    'statsd_port': {port}
+}}
 initialize(**options)
 
 # Multiple metrics at once
@@ -245,13 +249,13 @@ statsd.histogram('forwardog.dogstatsd.app.latency', random.uniform(10, 200), tag
 print("Sent multiple system and application metrics")
 ''',
 
-    "service_check": '''from datadog import initialize, statsd
+        "service_check": f'''from datadog import initialize, statsd
 
 # Initialize DogStatsD client
-options = {
-    'statsd_host': '127.0.0.1',
-    'statsd_port': 8125
-}
+options = {{
+    'statsd_host': '{host}',
+    'statsd_port': {port}
+}}
 initialize(**options)
 
 # Service Check - Report service status
@@ -265,13 +269,13 @@ statsd.service_check(
 print("Sent service check: OK")
 ''',
 
-    "event": '''from datadog import initialize, statsd
+        "event": f'''from datadog import initialize, statsd
 
 # Initialize DogStatsD client
-options = {
-    'statsd_host': '127.0.0.1',
-    'statsd_port': 8125
-}
+options = {{
+    'statsd_host': '{host}',
+    'statsd_port': {port}
+}}
 initialize(**options)
 
 # Event - Send an event to Datadog
@@ -283,5 +287,5 @@ statsd.event(
 )
 print("Sent event: Forwardog Test Event")
 ''',
-}
+    }
 

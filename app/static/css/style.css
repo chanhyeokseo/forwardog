@@ -969,6 +969,11 @@ a:hover {
   background: #282c34;
 }
 
+.python-ide:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary);
+}
+
 [data-theme="light"] .python-ide {
   background: #fafafa;
 }
@@ -1047,9 +1052,12 @@ a:hover {
   word-wrap: break-word;
 }
 
+[data-theme="light"] .code-editor-input {
+  caret-color: #1a1a2e;
+}
+
 .code-editor-input:focus {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: -2px;
+  outline: none;
 }
 
 .code-editor-input::selection {

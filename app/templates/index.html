@@ -216,14 +216,13 @@
 
 # Initialize DogStatsD client
 options = {
-    'statsd_host': '127.0.0.1',
-    'statsd_port': 8125
+    'statsd_host': '{{ config.dd_agent_host }}',
+    'statsd_port': {{ config.dogstatsd_port }}
 }
 initialize(**options)
 
-# Send a gauge metric
+# Gauge - Current value
 statsd.gauge('forwardog.dogstatsd.gauge', 42, tags=['env:test', 'source:forwardog'])
-print("Sent gauge metric: forwardog.dogstatsd.gauge = 42")
 </textarea>
                                     </div>
                                 </div>
