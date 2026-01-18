@@ -1,0 +1,29 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app/ ./app/
+
+RUN mkdir -p /var/log/forwardog
+
+ENV DD_API_KEY=""
+ENV DD_SITE="datadoghq.com"
+ENV DD_AGENT_HOST="datadog-agent"
+ENV DOGSTATSD_PORT="8125"
+ENV FORWARDOG_LOG_PATH="/var/log/forwardog/forwardog.log"
+ENV DEFAULT_TAGS=""
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

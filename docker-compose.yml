@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  forwardog:
+    build: .
+    container_name: forwardog
+    ports:
+      - "8000:8000"
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_SITE=${DD_SITE:-datadoghq.com}
+      - DD_AGENT_HOST=datadog-agent
+      - DOGSTATSD_PORT=8125
+      - FORWARDOG_LOG_PATH=/var/log/forwardog/forwardog.log
+      - DEFAULT_TAGS=${DEFAULT_TAGS:-}
+    volumes:
+      - forwardog-logs:/var/log/forwardog
+    networks:
+      - forwardog-network
+    depends_on:
+      - datadog-agent
+    restart: unless-stopped
+
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:latest
+    container_name: datadog-agent
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_SITE=${DD_SITE:-datadoghq.com}
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=false
+      - DD_LOGS_CONFIG_AUTO_MULTI_LINE_DETECTION=true
+      - DD_LOGS_CONFIG_FORCE_USE_HTTP=true
+      - DD_HOSTNAME=forwardog-agent
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+      - forwardog-logs:/var/log/forwardog:ro
+      - ./datadog-agent-conf.d:/etc/datadog-agent/conf.d:ro
+    ports:
+      - "8125:8125/udp"
+    networks:
+      - forwardog-network
+    restart: unless-stopped
+
+volumes:
+  forwardog-logs:
+    driver: local
+
+networks:
+  forwardog-network:
+    driver: bridge

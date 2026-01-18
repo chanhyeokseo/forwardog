@@ -1,0 +1,5 @@
+logs:
+  - type: file
+    path: /var/log/forwardog/forwardog.log
+    service: forwardog
+    source: forwardog

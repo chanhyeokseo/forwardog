@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forwardog - Datadog Test Tool</title>
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Highlight.js for Python syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <img src="/static/images/logo.png" alt="Forwardog" class="logo-img">
+                    <span class="logo-text">Forwardog</span>
+                </div>
+                <div class="config-status">
+                    <div class="config-item">
+                        <span class="status-dot validating" id="api-key-status" title="Validating..."></span>
+                        <span class="label">API Key:</span>
+                        <span>{{ config.masked_api_key }}</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="label">Site:</span>
+                        <span>{{ config.dd_site }}</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="label">Agent:</span>
+                        <span>{{ config.dd_agent_host }}:{{ config.dogstatsd_port }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <div class="main-grid">
+                <!-- Sidebar Navigation -->
+                <aside class="sidebar">
+                    <nav>
+                        <div class="nav-section">
+                            <div class="nav-title">Metrics</div>
+                            <div class="nav-item active" data-view="metrics-api">
+                                <span class="nav-item-icon">📊</span>
+                                <span class="nav-item-label">API Submission</span>
+                            </div>
+                            <div class="nav-item" data-view="dogstatsd">
+                                <span class="nav-item-icon">📡</span>
+                                <span class="nav-item-label">DogStatsD Submission</span>
+                            </div>
+                        </div>
+                        <div class="nav-section">
+                            <div class="nav-title">Logs</div>
+                            <div class="nav-item" data-view="logs-api">
+                                <span class="nav-item-icon">📝</span>
+                                <span class="nav-item-label">API Submission</span>
+                            </div>
+                            <div class="nav-item" data-view="agent-file">
+                                <span class="nav-item-icon">📁</span>
+                                <span class="nav-item-label">Agent Submission</span>
+                            </div>
+                        </div>
+                        <div class="nav-section">
+                            <div class="nav-title">Tools</div>
+                            <div class="nav-item" data-view="history">
+                                <span class="nav-item-icon">📜</span>
+                                <span class="nav-item-label">History</span>
+                            </div>
+                        </div>
+                    </nav>
+                </aside>
+
+                <!-- Content Panel -->
+                <section class="content-panel">
+                    <!-- Metrics API View -->
+                    <div id="view-metrics-api" class="view-content">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Metrics API Submission</h2>
+                            <div class="panel-tabs" id="metrics-api-tabs">
+                                <button class="panel-tab active" data-tab="json" onclick="switchTab('metrics-api-tabs', 'json')">JSON</button>
+                                <button class="panel-tab" data-tab="form" onclick="switchTab('metrics-api-tabs', 'form')">Form</button>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <!-- JSON Tab -->
+                            <div id="metrics-api-tabs-json" class="tab-content">
+                                <div class="editor-area">
+                                    <div class="editor-toolbar">
+                                        <div class="presets-dropdown">
+                                            <button class="btn btn-secondary btn-sm" onclick="forwardog.togglePresets('presets-metrics-api')">
+                                                📋 Presets
+                                            </button>
+                                            <div id="presets-metrics-api" class="presets-menu"></div>
+                                        </div>
+                                        <div class="editor-actions">
+                                            <span class="shortcut-hint">Ctrl+Enter to submit</span>
+                                            <button class="btn btn-secondary btn-sm" onclick="forwardog.formatJson('metrics-api-json')">Format</button>
+                                            <button class="btn btn-secondary btn-sm" onclick="forwardog.insertNowTimestamp('metrics-api-json')">⏱️ Now</button>
+                                        </div>
+                                    </div>
+                                    <textarea id="metrics-api-json" class="form-textarea" placeholder='{"series": [...]}'>{
+  "series": [
+    {
+      "metric": "forwardog.api.gauge",
+      "type": 3,
+      "points": [
+        {
+          "timestamp": {{ (config.dd_site | length) * 0 + 1737158400 }},
+          "value": 42
+        }
+      ],
+      "resources": [
+        {
+          "name": "forwardog-test",
+          "type": "host"
+        }
+      ],
+      "tags": [
+        "env:test",
+        "source:forwardog"
+      ]
+    }
+  ]
+}</textarea>
+                                </div>
+                                <div class="mt-4">
+                                    <button id="btn-submit-metrics-api" class="btn btn-primary btn-block" onclick="forwardog.submitMetricsApi()">
+                                        📤 Submit Metrics
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Form Tab -->
+                            <div id="metrics-api-tabs-form" class="tab-content hidden">
+                                <div class="form-group">
+                                    <label class="form-label">Metric Name</label>
+                                    <input type="text" id="metric-name" class="form-input" value="forwardog.api.gauge" placeholder="my.metric.name">
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Type</label>
+                                        <select id="metric-type" class="form-select">
+                                            <option value="3">Gauge</option>
+                                            <option value="1">Count</option>
+                                            <option value="2">Rate</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Value</label>
+                                        <input type="number" id="metric-value" class="form-input" value="42" step="any">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Timestamp</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="number" id="metric-timestamp" class="form-input" placeholder="Unix timestamp (seconds)" style="flex: 1;">
+                                        <button type="button" class="btn btn-secondary" onclick="forwardog.setFormTimestampNow()">⏱️ Now</button>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Host</label>
+                                    <input type="text" id="metric-host" class="form-input" value="forwardog-test" placeholder="hostname">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Tags (comma-separated)</label>
+                                    <input type="text" id="metric-tags" class="form-input" value="env:test,source:forwardog" placeholder="env:prod,service:myapp">
+                                </div>
+                                <div class="mt-4">
+                                    <button id="btn-submit-metrics-form" class="btn btn-primary btn-block" onclick="forwardog.submitMetricsForm()">
+                                        📤 Submit Metric
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DogStatsD View - Python IDE Style -->
+                    <div id="view-dogstatsd" class="view-content hidden">
+                        <div class="panel-header">
+                            <h2 class="panel-title">DogStatsD Submission</h2>
+                            <div class="panel-tabs">
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Agent: {{ config.dd_agent_host }}:{{ config.dogstatsd_port }}</span>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="editor-area">
+                                <div class="editor-toolbar">
+                                    <div class="presets-dropdown">
+                                        <button class="btn btn-secondary btn-sm" onclick="forwardog.togglePresets('presets-dogstatsd')">
+                                            📋 Presets
+                                        </button>
+                                        <div id="presets-dogstatsd" class="presets-menu"></div>
+                                    </div>
+                                    <div class="editor-actions">
+                                        <span class="shortcut-hint">Ctrl+Enter to run</span>
+                                    </div>
+                                </div>
+                                <div class="python-ide">
+                                    <div class="ide-header">
+                                        <span class="ide-filename">📄 dogstatsd_metric.py</span>
+                                    </div>
+                                    <div class="code-editor-wrapper">
+                                        <pre class="code-highlight"><code id="dogstatsd-code-highlight" class="language-python"></code></pre>
+                                        <textarea id="dogstatsd-code" class="code-editor-input" spellcheck="false" oninput="forwardog.updateCodeHighlight()">from datadog import initialize, statsd
+
+# Initialize DogStatsD client
+options = {
+    'statsd_host': '127.0.0.1',
+    'statsd_port': 8125
+}
+initialize(**options)
+
+# Send a gauge metric
+statsd.gauge('forwardog.dogstatsd.gauge', 42, tags=['env:test', 'source:forwardog'])
+print("Sent gauge metric: forwardog.dogstatsd.gauge = 42")
+</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <button id="btn-run-dogstatsd" class="btn btn-primary btn-block" onclick="forwardog.runDogStatsDCode()">
+                                    ▶️ Run Code
+                                </button>
+                            </div>
+                            <div id="dogstatsd-output" class="code-output hidden">
+                                <div class="output-header">📤 Output</div>
+                                <pre class="output-content"></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logs API View -->
+                    <div id="view-logs-api" class="view-content hidden">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Logs API Submission</h2>
+                            <div class="panel-tabs" id="logs-api-tabs">
+                                <button class="panel-tab active" data-tab="json" onclick="switchTab('logs-api-tabs', 'json')">JSON</button>
+                                <button class="panel-tab" data-tab="form" onclick="switchTab('logs-api-tabs', 'form')">Form</button>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <!-- JSON Tab -->
+                            <div id="logs-api-tabs-json" class="tab-content">
+                                <div class="editor-area">
+                                    <div class="editor-toolbar">
+                                        <div class="presets-dropdown">
+                                            <button class="btn btn-secondary btn-sm" onclick="forwardog.togglePresets('presets-logs-api')">
+                                                📋 Presets
+                                            </button>
+                                            <div id="presets-logs-api" class="presets-menu"></div>
+                                        </div>
+                                        <div class="editor-actions">
+                                            <span class="shortcut-hint">Ctrl+Enter to submit</span>
+                                            <button class="btn btn-secondary btn-sm" onclick="forwardog.formatJson('logs-api-json')">Format</button>
+                                        </div>
+                                    </div>
+                                    <textarea id="logs-api-json" class="form-textarea" placeholder='[{"message": "Test log", "ddsource": "forwardog", "service": "forwardog-test", "status": "info"}]'>[
+  {
+    "message": "This is a test log from forwardog",
+    "ddsource": "forwardog",
+    "service": "forwardog-test",
+    "status": "info",
+    "ddtags": "env:test,source:forwardog"
+  }
+]</textarea>
+                                </div>
+                                <div class="mt-4">
+                                    <button id="btn-submit-logs-api" class="btn btn-primary btn-block" onclick="forwardog.submitLogsApi()">
+                                        📤 Submit Logs
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Form Tab -->
+                            <div id="logs-api-tabs-form" class="tab-content hidden">
+                                <div class="form-group">
+                                    <label class="form-label">Message</label>
+                                    <textarea id="log-message" class="form-textarea" style="min-height: 100px;" placeholder="Enter your log message...">This is a test log from forwardog</textarea>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Service</label>
+                                        <input type="text" id="log-service" class="form-input" value="forwardog-test" placeholder="service-name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Source</label>
+                                        <input type="text" id="log-source" class="form-input" value="forwardog" placeholder="source">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Status</label>
+                                        <select id="log-status" class="form-select">
+                                            <option value="info">Info</option>
+                                            <option value="debug">Debug</option>
+                                            <option value="warning">Warning</option>
+                                            <option value="error">Error</option>
+                                            <option value="critical">Critical</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Tags</label>
+                                    <input type="text" id="log-tags" class="form-input" value="env:test,source:forwardog" placeholder="key:value,key2:value2">
+                                </div>
+                                <div class="mt-4">
+                                    <button id="btn-submit-logs-form" class="btn btn-primary btn-block" onclick="forwardog.submitLogsForm()">
+                                        📤 Submit Log
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Agent File View -->
+                    <div id="view-agent-file" class="view-content hidden">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Agent Submission</h2>
+                        </div>
+                        <div class="panel-body">
+                            <div class="editor-area">
+                                <div class="editor-toolbar">
+                                    <div class="presets-dropdown">
+                                        <button class="btn btn-secondary btn-sm" onclick="forwardog.togglePresets('presets-agent-file')">
+                                            📋 Presets
+                                        </button>
+                                        <div id="presets-agent-file" class="presets-menu"></div>
+                                    </div>
+                                    <div class="editor-actions">
+                                        <span class="shortcut-hint">Ctrl+Enter to submit</span>
+                                    </div>
+                                </div>
+                                <p class="mb-4" style="font-size: 0.85rem; color: var(--text-muted);">
+                                    Write logs to: <code style="background: var(--bg-input); padding: 2px 6px; border-radius: 4px;">{{ config.log_path }}</code>
+                                </p>
+                                
+                                <!-- File Upload Area -->
+                                <div class="file-upload-area" id="file-drop-zone" onclick="document.getElementById('log-file-input').click()">
+                                    <input type="file" id="log-file-input" accept=".log,.txt,.json" style="display: none;" onchange="forwardog.handleLogFileUpload(event)">
+                                    <div class="file-upload-content">
+                                        <span class="file-upload-icon">📁</span>
+                                        <span class="file-upload-text">Drop log file here or click to upload</span>
+                                        <span class="file-upload-hint">.log, .txt, .json files supported</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <label class="form-label" style="margin-bottom: 0;">Log Messages (one per line)</label>
+                                        <button class="btn btn-secondary btn-sm" onclick="forwardog.updateAgentFileTimestamps()">⏱️ Now</button>
+                                    </div>
+                                    <textarea id="agent-file-messages" class="form-textarea" style="min-height: 150px;" placeholder="Enter log messages, one per line...">This is a test log line from forwardog
+Application started successfully
+Processing request ID 12345</textarea>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">Service</label>
+                                        <input type="text" id="agent-file-service" class="form-input" value="forwardog-test" placeholder="service-name">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <button id="btn-submit-agent-file" class="btn btn-primary btn-block" onclick="forwardog.submitAgentFile()">
+                                    📝 Write to Log File
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- History View -->
+                    <div id="view-history" class="view-content hidden">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Request History</h2>
+                            <div class="editor-actions">
+                                <span class="shortcut-hint" id="history-count">0 items</span>
+                                <button class="btn btn-secondary btn-sm" onclick="forwardog.exportHistory()">📥 Export</button>
+                                <button class="btn btn-secondary btn-sm" onclick="forwardog.clearHistory()">🗑️ Clear</button>
+                            </div>
+                        </div>
+                        <div class="panel-body" id="history-container">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📜</div>
+                                <div class="empty-state-text">History will appear here as you make requests.<br><small>Stored in browser localStorage</small></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Results Panel -->
+                <aside class="results-panel">
+                    <div class="results-header">
+                        <h3 class="results-title">Results</h3>
+                        <button class="btn btn-secondary btn-sm" onclick="forwardog.clearResults()">Clear</button>
+                    </div>
+                    <div class="results-body" id="results-container">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📋</div>
+                            <div class="empty-state-text">No results yet. Submit a request to see results here.</div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </main>
+
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+        <span class="icon-sun">☀️</span>
+        <span class="icon-moon">🌙</span>
+    </button>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
+
