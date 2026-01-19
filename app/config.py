@@ -1,17 +1,18 @@
-import os
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    dd_api_key: str = os.getenv("DD_API_KEY", "")
-    dd_site: str = os.getenv("DD_SITE", "datadoghq.com")
-    dd_agent_host: str = os.getenv("DD_AGENT_HOST", "127.0.0.1")
-    dogstatsd_port: int = int(os.getenv("DOGSTATSD_PORT", "8125"))
-    forwardog_log_path: str = os.getenv("FORWARDOG_LOG_PATH", "/var/log/forwardog/forwardog.log")
-    default_tags: str = os.getenv("DEFAULT_TAGS", "")
-    max_requests_per_second: int = int(os.getenv("MAX_REQUESTS_PER_SECOND", "10"))
-    max_payload_size_mb: int = int(os.getenv("MAX_PAYLOAD_SIZE_MB", "5"))
-    max_history_items: int = int(os.getenv("MAX_HISTORY_ITEMS", "100"))
+    dd_api_key: str = ""
+    dd_site: str = "datadoghq.com"
+    dd_agent_host: str = "127.0.0.1"
+    dogstatsd_port: int = 8125
+    max_requests_per_second: int = 10
+    max_payload_size_mb: int = 5
+    max_history_items: int = 100
+    
+    @property
+    def forwardog_log_path(self) -> str:
+        return "/var/log/forwardog/forwardog.log"
     
     @property
     def dd_api_url(self) -> str:
@@ -31,9 +32,7 @@ class Settings(BaseSettings):
     
     @property
     def default_tags_list(self) -> list[str]:
-        if not self.default_tags:
-            return []
-        return [tag.strip() for tag in self.default_tags.split(",") if tag.strip()]
+        return ["source:forwardog"]
     
     def is_configured(self) -> bool:
         return bool(self.dd_api_key)
@@ -44,9 +43,6 @@ class Settings(BaseSettings):
         if len(self.dd_api_key) <= 4:
             return "*" * len(self.dd_api_key)
         return "*" * (len(self.dd_api_key) - 4) + self.dd_api_key[-4:]
-
-    class Config:
-        env_file = ".env"
 
 
 settings = Settings()

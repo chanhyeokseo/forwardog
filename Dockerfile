@@ -16,9 +16,7 @@ RUN mkdir -p /var/log/forwardog
 
 ENV DD_SITE="datadoghq.com" \
     DD_AGENT_HOST="datadog-agent" \
-    DOGSTATSD_PORT="8125" \
-    FORWARDOG_LOG_PATH="/var/log/forwardog/forwardog.log" \
-    DEFAULT_TAGS=""
+    DOGSTATSD_PORT="8125"
 
 EXPOSE 8000
 

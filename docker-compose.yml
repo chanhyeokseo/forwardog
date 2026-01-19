@@ -11,8 +11,6 @@ services:
       - DD_SITE=${DD_SITE:-datadoghq.com}
       - DD_AGENT_HOST=datadog-agent
       - DOGSTATSD_PORT=8125
-      - FORWARDOG_LOG_PATH=/var/log/forwardog/forwardog.log
-      - DEFAULT_TAGS=${DEFAULT_TAGS:-}
     volumes:
       - forwardog-logs:/var/log/forwardog
     networks:

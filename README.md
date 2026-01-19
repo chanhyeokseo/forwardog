@@ -50,8 +50,6 @@ services:
       - DD_SITE=${DD_SITE:-datadoghq.com}
       - DD_AGENT_HOST=datadog-agent
       - DOGSTATSD_PORT=8125
-      - FORWARDOG_LOG_PATH=/var/log/forwardog/forwardog.log
-      - DEFAULT_TAGS=${DEFAULT_TAGS:-}
     volumes:
       - forwardog-logs:/var/log/forwardog
     networks:
@@ -126,8 +124,6 @@ Open your browser and navigate to: **http://localhost:8000**
 | `DD_SITE` | Datadog site | `datadoghq.com` |
 | `DD_AGENT_HOST` | Datadog Agent hostname | `datadog-agent` |
 | `DOGSTATSD_PORT` | DogStatsD UDP port | `8125` |
-| `FORWARDOG_LOG_PATH` | Path for Agent file logs | `/var/log/forwardog/forwardog.log` |
-| `DEFAULT_TAGS` | Default tags (comma-separated) | - |
 | `MAX_REQUESTS_PER_SECOND` | Rate limit | `10` |
 | `MAX_PAYLOAD_SIZE_MB` | Max payload size | `5` |
 
