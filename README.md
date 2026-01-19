@@ -20,11 +20,11 @@ Forwardog is a Web UI service that helps you test and validate Datadog metrics a
 - **API-based** - Submit logs via Datadog HTTP intake API
 - **Agent File** - Write logs to a file for Datadog Agent collection
 
-### Payload Modes
-- **JSON Editor** - Full control with raw JSON payload editing
-- **Form Mode** - Easy dropdown and input-based metric/log configuration
-- **Presets** - Pre-built templates for common scenarios
-
+### Validation & Automation
+- **API Key Validation** - Automatic validation on startup
+- **JSON Validation** - Real-time JSON syntax checking with formatting support
+- **Timestamp Validation** - Warns when timestamps are outside Datadog's acceptable range (Metrics: ±1h, Logs: -18h/+2h)
+- **Presets** - Pre-built templates for common metric types (Gauge, Counter, Distribution) and log formats
 
 ## Quick Start
 
