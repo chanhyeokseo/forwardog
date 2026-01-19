@@ -14,12 +14,11 @@ COPY app/ ./app/
 
 RUN mkdir -p /var/log/forwardog
 
-ENV DD_API_KEY=""
-ENV DD_SITE="datadoghq.com"
-ENV DD_AGENT_HOST="datadog-agent"
-ENV DOGSTATSD_PORT="8125"
-ENV FORWARDOG_LOG_PATH="/var/log/forwardog/forwardog.log"
-ENV DEFAULT_TAGS=""
+ENV DD_SITE="datadoghq.com" \
+    DD_AGENT_HOST="datadog-agent" \
+    DOGSTATSD_PORT="8125" \
+    FORWARDOG_LOG_PATH="/var/log/forwardog/forwardog.log" \
+    DEFAULT_TAGS=""
 
 EXPOSE 8000
 

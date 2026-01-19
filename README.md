@@ -32,25 +32,87 @@ Forwardog is a Web UI service that helps you test and validate Datadog metrics a
 - Docker and Docker Compose
 - Datadog API Key
 
-### 1. Clone and Configure
+### Option 1: Using Pre-built Image (Recommended)
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: "3.8"
+
+services:
+  forwardog:
+    image: forwardog/forwardog:latest
+    container_name: forwardog
+    ports:
+      - "8000:8000"
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_SITE=${DD_SITE:-datadoghq.com}
+      - DD_AGENT_HOST=datadog-agent
+      - DOGSTATSD_PORT=8125
+      - FORWARDOG_LOG_PATH=/var/log/forwardog/forwardog.log
+      - DEFAULT_TAGS=${DEFAULT_TAGS:-}
+    volumes:
+      - forwardog-logs:/var/log/forwardog
+    networks:
+      - forwardog-network
+    depends_on:
+      - datadog-agent
+    restart: unless-stopped
+
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:latest
+    container_name: datadog-agent
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_SITE=${DD_SITE:-datadoghq.com}
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=false
+      - DD_LOGS_CONFIG_AUTO_MULTI_LINE_DETECTION=true
+      - DD_LOGS_CONFIG_FORCE_USE_HTTP=true
+      - DD_HOSTNAME=forwardog-agent
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+      - forwardog-logs:/var/log/forwardog:ro
+    ports:
+      - "8125:8125/udp"
+    networks:
+      - forwardog-network
+    restart: unless-stopped
+
+volumes:
+  forwardog-logs:
+    driver: local
+
+networks:
+  forwardog-network:
+    driver: bridge
+```
+
+Then run:
 
 ```bash
-git clone https://github.com/yourusername/forwardog.git
+export DD_API_KEY=your_api_key_here
+docker-compose up -d
+```
+
+### Option 2: Build from Source
+
+```bash
+git clone https://github.com/forwardog/forwardog.git
 cd forwardog
 
 # Copy and edit environment file
 cp env.example .env
 # Edit .env and add your DD_API_KEY
-```
 
-### 2. Start with Docker Compose
-
-**Full setup (with Datadog Agent):**
-```bash
 docker-compose up -d
 ```
 
-### 3. Access the UI
+### Access the UI
 
 Open your browser and navigate to: **http://localhost:8000**
 
