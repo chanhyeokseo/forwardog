@@ -1,6 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('forwardog-theme');
+            const theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Forwardog - Datadog Test Tool</title>
@@ -15,6 +22,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
 </head>
 <body>
+    <!-- Background Metrics Animation -->
+    <canvas id="metrics-bg" class="metrics-background"></canvas>
+    
     <!-- Header -->
     <header class="header">
         <div class="container">
@@ -421,6 +431,212 @@ Processing request ID 12345</textarea>
     </button>
 
     <script src="/static/js/app.js"></script>
+    
+    <!-- Metrics Background Animation -->
+    <script>
+    (function() {
+        const canvas = document.getElementById('metrics-bg');
+        const ctx = canvas.getContext('2d');
+        
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        
+        const isDark = () => document.documentElement.getAttribute('data-theme') !== 'light';
+        
+        const colors = {
+            dark: [
+                { line: 'rgba(99, 102, 241, 0.20)', fill: 'rgba(99, 102, 241, 0.035)' },
+                { line: 'rgba(6, 182, 212, 0.18)', fill: 'rgba(6, 182, 212, 0.03)' },
+                { line: 'rgba(139, 92, 246, 0.16)', fill: 'rgba(139, 92, 246, 0.025)' },
+                { line: 'rgba(20, 184, 166, 0.14)', fill: 'rgba(20, 184, 166, 0.02)' },
+                { line: 'rgba(59, 130, 246, 0.12)', fill: 'rgba(59, 130, 246, 0.018)' }
+            ],
+            light: [
+                { line: 'rgba(99, 102, 241, 0.25)', fill: 'rgba(99, 102, 241, 0.04)' },
+                { line: 'rgba(6, 182, 212, 0.22)', fill: 'rgba(6, 182, 212, 0.035)' },
+                { line: 'rgba(139, 92, 246, 0.20)', fill: 'rgba(139, 92, 246, 0.03)' },
+                { line: 'rgba(20, 184, 166, 0.18)', fill: 'rgba(20, 184, 166, 0.025)' },
+                { line: 'rgba(59, 130, 246, 0.15)', fill: 'rgba(59, 130, 246, 0.02)' }
+            ]
+        };
+        
+        function drawGrid() {
+            const gridColor = isDark() ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)';
+            ctx.strokeStyle = gridColor;
+            ctx.lineWidth = 1;
+            
+            const gridSpacingX = 80;
+            const gridSpacingY = 60;
+            
+            for (let x = 0; x < canvas.width; x += gridSpacingX) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y < canvas.height; y += gridSpacingY) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+        
+        class MetricSeries {
+            constructor(index, total) {
+                this.index = index;
+                this.total = total;
+                this.pointSpacing = 12;
+                this.reset();
+            }
+            
+            reset() {
+                const h = canvas.height;
+                const segment = h / (this.total + 1);
+                this.baseY = segment * (this.index + 1);
+                this.amplitude = 25 + Math.random() * 35;
+                this.currentValue = this.baseY;
+                this.targetValue = this.baseY;
+                this.values = [];
+                this.updateCounter = 0;
+                this.updateInterval = 25 + Math.floor(Math.random() * 25);
+                this.pattern = Math.floor(Math.random() * 4);
+                this.patternPhase = 0;
+                
+                const numPoints = Math.ceil(canvas.width / this.pointSpacing) + 5;
+                for (let i = 0; i < numPoints; i++) {
+                    this.values.push(this.baseY + (Math.random() - 0.5) * this.amplitude * 0.5);
+                }
+            }
+            
+            generateNextValue() {
+                this.patternPhase++;
+                let newValue;
+                
+                switch(this.pattern) {
+                    case 0:
+                        if (Math.random() > 0.92) {
+                            newValue = this.baseY + (Math.random() > 0.5 ? 1 : -1) * this.amplitude * (0.7 + Math.random() * 0.5);
+                        } else {
+                            newValue = this.currentValue + (Math.random() - 0.5) * 8;
+                        }
+                        break;
+                    case 1:
+                        const rampUp = (this.patternPhase % 60) / 60;
+                        newValue = this.baseY - this.amplitude * 0.5 + rampUp * this.amplitude;
+                        newValue += (Math.random() - 0.5) * 10;
+                        break;
+                    case 2:
+                        if (Math.random() > 0.85) {
+                            this.targetValue = this.baseY + (Math.random() - 0.5) * this.amplitude;
+                        }
+                        this.currentValue += (this.targetValue - this.currentValue) * 0.3;
+                        newValue = this.currentValue + (Math.random() - 0.5) * 5;
+                        break;
+                    case 3:
+                        const burstChance = Math.random();
+                        if (burstChance > 0.97) {
+                            newValue = this.baseY + this.amplitude * (0.8 + Math.random() * 0.4);
+                        } else if (burstChance > 0.94) {
+                            newValue = this.baseY - this.amplitude * (0.5 + Math.random() * 0.3);
+                        } else {
+                            newValue = this.baseY + (Math.random() - 0.5) * this.amplitude * 0.3;
+                        }
+                        break;
+                    default:
+                        newValue = this.baseY + (Math.random() - 0.5) * this.amplitude;
+                }
+                
+                newValue = Math.max(this.baseY - this.amplitude, Math.min(this.baseY + this.amplitude, newValue));
+                this.currentValue = newValue;
+                return newValue;
+            }
+            
+            update() {
+                this.updateCounter++;
+                if (this.updateCounter >= this.updateInterval) {
+                    this.updateCounter = 0;
+                    this.values.shift();
+                    this.values.push(this.generateNextValue());
+                }
+            }
+            
+            draw(colorIndex) {
+                const palette = isDark() ? colors.dark : colors.light;
+                const color = palette[colorIndex % palette.length];
+                
+                const drawCurve = (fill = false) => {
+                    ctx.beginPath();
+                    if (fill) ctx.moveTo(0, canvas.height);
+                    
+                    for (let i = 0; i < this.values.length; i++) {
+                        const x = i * this.pointSpacing;
+                        const y = this.values[i];
+                        
+                        if (i === 0) {
+                            if (fill) ctx.lineTo(x, y);
+                            else ctx.moveTo(x, y);
+                        } else {
+                            const prevX = (i - 1) * this.pointSpacing;
+                            const prevY = this.values[i - 1];
+                            const cpX = (prevX + x) / 2;
+                            ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
+                        }
+                    }
+                    
+                    if (fill) {
+                        ctx.lineTo(canvas.width, canvas.height);
+                        ctx.closePath();
+                    }
+                };
+                
+                ctx.fillStyle = color.fill;
+                drawCurve(true);
+                ctx.fill();
+                
+                ctx.strokeStyle = color.line;
+                ctx.lineWidth = 1.5;
+                drawCurve(false);
+                ctx.stroke();
+            }
+        }
+        
+        const series = [];
+        const numSeries = 5;
+        for (let i = 0; i < numSeries; i++) {
+            series.push(new MetricSeries(i, numSeries));
+        }
+        
+        let lastTime = 0;
+        function animate(time) {
+            if (time - lastTime > 80) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                drawGrid();
+                
+                series.forEach((s, i) => {
+                    s.update();
+                    s.draw(i);
+                });
+                
+                lastTime = time;
+            }
+            requestAnimationFrame(animate);
+        }
+        
+        window.addEventListener('resize', () => {
+            resize();
+            series.forEach(s => s.reset());
+        });
+        
+        animate(0);
+    })();
+    </script>
 </body>
 </html>
 
