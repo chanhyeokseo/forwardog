@@ -112,7 +112,7 @@ docker-compose up -d
 
 ### Option 3: Deploy to DogSTAC
 
-DogSTAC is a Terraform-based catalog that allows you to deploy services to AWS Cloud. If you are using DogSTAC, you can deploy Forwardog using the `forwardog.tf` file. For more information, check out the [DogSTAC documentation](https://github.com/chanhyeokseo/datadog-sandbox-terraform-catalog).
+DogSTAC is a Terraform-based catalog that allows you to deploy services to AWS Cloud. If you are using DogSTAC, you can deploy Forwardog using the `forwardog.tf` file. For more information, check out the [DogSTAC documentation](https://github.com/chanhyeokseo/dogstac).
 
 ### Access the UI
 
