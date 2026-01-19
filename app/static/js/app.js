@@ -8,7 +8,6 @@ class Forwardog {
         this.init();
     }
     
-    // ==================== History Management ====================
     
     loadHistoryFromStorage() {
         try {
@@ -1284,7 +1283,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Theme Toggle
 (function initTheme() {
     const themeToggle = document.getElementById('theme-toggle');
     const html = document.documentElement;

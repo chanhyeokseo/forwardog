@@ -23,7 +23,6 @@ async def submit_logs_api(request: LogsApiRequest):
     if not settings.is_configured():
         raise HTTPException(status_code=400, detail="DD_API_KEY not configured")
     
-    # Build log payload
     logs = []
     for entry in request.logs:
         log_data = {
@@ -43,7 +42,6 @@ async def submit_logs_api(request: LogsApiRequest):
         
         logs.append(log_data)
     
-    # Build global ddtags
     ddtags = request.ddtags
     if settings.default_tags_list:
         default_tags = ",".join(settings.default_tags_list)
@@ -54,7 +52,6 @@ async def submit_logs_api(request: LogsApiRequest):
     
     response = await datadog_client.submit_logs(logs, ddtags=ddtags)
     
-    # Save to history
     history_service.add(
         HistoryEntryType.LOGS_API,
         {"logs": [e.model_dump() for e in request.logs], "ddtags": request.ddtags},
@@ -72,7 +69,6 @@ async def submit_logs_json(request: LogsJsonRequest):
     
     response = await datadog_client.submit_logs(request.payload)
     
-    # Save to history
     history_service.add(
         HistoryEntryType.LOGS_API,
         {"payload": request.payload},
@@ -88,7 +84,6 @@ async def submit_logs_raw(request: LogsRawRequest):
     if not settings.is_configured():
         raise HTTPException(status_code=400, detail="DD_API_KEY not configured")
     
-    # Convert raw messages to log format
     logs = []
     for message in request.messages:
         log_data = {
@@ -102,7 +97,6 @@ async def submit_logs_raw(request: LogsRawRequest):
     
     response = await datadog_client.submit_logs(logs)
     
-    # Save to history
     history_service.add(
         HistoryEntryType.LOGS_API,
         request.model_dump(),
@@ -126,7 +120,6 @@ async def submit_agent_file_logs(request: AgentFileLogRequest):
     else:
         response = file_logger.write_raw(request.messages)
     
-    # Save to history
     history_service.add(
         HistoryEntryType.LOGS_AGENT_FILE,
         request.model_dump(),

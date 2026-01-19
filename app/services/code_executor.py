@@ -29,14 +29,11 @@ class CodeExecutor:
         start_time = time.time()
         request_id = f"dogstatsd-exec-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
         
-        # Ensure DogStatsD is initialized
         self._ensure_initialized()
         
-        # Capture stdout/stderr
         stdout_capture = io.StringIO()
         stderr_capture = io.StringIO()
         
-        # Build execution context with DogStatsD client
         exec_globals = {
             '__builtins__': __builtins__,
             'statsd': statsd,
