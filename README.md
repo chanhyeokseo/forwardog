@@ -131,7 +131,7 @@ Open your browser and navigate to: **http://localhost:8000**
 | `MAX_REQUESTS_PER_SECOND` | Rate limit | `10` |
 | `MAX_PAYLOAD_SIZE_MB` | Max payload size | `5` |
 
-## 🔧 API Endpoints
+## API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
