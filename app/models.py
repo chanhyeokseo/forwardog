@@ -88,7 +88,7 @@ class LogsApiRequest(BaseModel):
 
 
 class LogsJsonRequest(BaseModel):
-    payload: list[dict[str, Any]]
+    payload: list[dict[str, Any]] | dict[str, Any]
 
 
 class LogsRawRequest(BaseModel):

@@ -67,7 +67,8 @@ async def submit_logs_json(request: LogsJsonRequest):
     if not settings.is_configured():
         raise HTTPException(status_code=400, detail="DD_API_KEY not configured")
     
-    response = await datadog_client.submit_logs(request.payload)
+    payload = request.payload if isinstance(request.payload, list) else [request.payload]
+    response = await datadog_client.submit_logs(payload)
     
     history_service.add(
         HistoryEntryType.LOGS_API,
