@@ -12,6 +12,7 @@ class DatadogClient:
     def __init__(self):
         self.api_url = settings.dd_api_url
         self.logs_url = settings.dd_logs_url
+        self.events_url = settings.dd_events_url
         self.api_key = settings.dd_api_key
         
     def _get_headers(self, content_type: str = "application/json") -> dict[str, str]:
@@ -148,6 +149,158 @@ class DatadogClient:
                 return SubmitResponse(
                     success=False,
                     message=f"Failed to submit logs: HTTP {response.status_code}",
+                    request_id=request_id,
+                    status_code=response.status_code,
+                    latency_ms=latency_ms,
+                    response_body=response_body,
+                    error_hint=self._get_error_hint(response.status_code, response_body)
+                )
+                
+        except httpx.TimeoutException:
+            return SubmitResponse(
+                success=False,
+                message="Request timeout",
+                request_id=request_id,
+                latency_ms=(time.time() - start_time) * 1000,
+                error_hint="Request timed out. Check network connectivity to Datadog."
+            )
+        except Exception as e:
+            return SubmitResponse(
+                success=False,
+                message=f"Error: {str(e)}",
+                request_id=request_id,
+                latency_ms=(time.time() - start_time) * 1000,
+                error_hint=f"Unexpected error: {type(e).__name__}"
+            )
+
+    async def submit_event_v1(self, event: dict[str, Any]) -> SubmitResponse:
+        """Submit event via Datadog Events API v1
+        
+        The v1 API expects a payload with:
+        - title (required)
+        - text (required)
+        - date_happened (POSIX timestamp)
+        - priority (normal/low)
+        - host, tags, alert_type, aggregation_key, etc.
+        """
+        url = f"{self.api_url}/api/v1/events"
+        headers = self._get_headers()
+        
+        start_time = time.time()
+        request_id = f"event-v1-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+        
+        try:
+            body = json.dumps(event).encode()
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url,
+                    content=body,
+                    headers=headers,
+                    timeout=30.0
+                )
+            
+            latency_ms = (time.time() - start_time) * 1000
+            
+            try:
+                response_body = response.json()
+            except Exception:
+                response_body = response.text
+            
+            if response.status_code in (200, 201, 202):
+                return SubmitResponse(
+                    success=True,
+                    message="Event submitted successfully (v1 API)",
+                    request_id=request_id,
+                    status_code=response.status_code,
+                    latency_ms=latency_ms,
+                    response_body=response_body
+                )
+            else:
+                return SubmitResponse(
+                    success=False,
+                    message=f"Failed to submit event: HTTP {response.status_code}",
+                    request_id=request_id,
+                    status_code=response.status_code,
+                    latency_ms=latency_ms,
+                    response_body=response_body,
+                    error_hint=self._get_error_hint(response.status_code, response_body)
+                )
+                
+        except httpx.TimeoutException:
+            return SubmitResponse(
+                success=False,
+                message="Request timeout",
+                request_id=request_id,
+                latency_ms=(time.time() - start_time) * 1000,
+                error_hint="Request timed out. Check network connectivity to Datadog."
+            )
+        except Exception as e:
+            return SubmitResponse(
+                success=False,
+                message=f"Error: {str(e)}",
+                request_id=request_id,
+                latency_ms=(time.time() - start_time) * 1000,
+                error_hint=f"Unexpected error: {type(e).__name__}"
+            )
+
+    async def submit_event(self, event: dict[str, Any]) -> SubmitResponse:
+        """Submit event via Datadog Events API v2
+        
+        The v2 API expects a payload in this format:
+        {
+            "data": {
+                "type": "event",
+                "attributes": {
+                    "title": "...",
+                    "category": "change" | "alert",
+                    "attributes": { ... category-specific ... },
+                    "message": "...",
+                    "host": "...",
+                    "tags": [...],
+                    "timestamp": "ISO8601",
+                    "aggregation_key": "..."
+                }
+            }
+        }
+        """
+        url = f"{self.events_url}/api/v2/events"
+        headers = self._get_headers()
+        
+        start_time = time.time()
+        request_id = f"event-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+        
+        try:
+            body = json.dumps(event).encode()
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url,
+                    content=body,
+                    headers=headers,
+                    timeout=30.0
+                )
+            
+            latency_ms = (time.time() - start_time) * 1000
+            
+            try:
+                response_body = response.json()
+            except Exception:
+                response_body = response.text
+            
+            if response.status_code in (200, 201, 202):
+                return SubmitResponse(
+                    success=True,
+                    message="Event submitted successfully (v2 API)",
+                    request_id=request_id,
+                    status_code=response.status_code,
+                    latency_ms=latency_ms,
+                    response_body=response_body
+                )
+            else:
+                return SubmitResponse(
+                    success=False,
+                    message=f"Failed to submit event: HTTP {response.status_code}",
                     request_id=request_id,
                     status_code=response.status_code,
                     latency_ms=latency_ms,

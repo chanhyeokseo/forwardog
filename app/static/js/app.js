@@ -1,7 +1,7 @@
 class Forwardog {
     constructor() {
         this.currentView = 'metrics-api';
-        this.presets = { metrics: {}, logs: {} };
+        this.presets = { metrics: {}, logs: {}, events: {} };
         this.history = this.loadHistoryFromStorage();
         this.maxHistoryItems = 100;
         
@@ -84,7 +84,11 @@ class Forwardog {
                 'dogstatsd': 'DogStatsD',
                 'logs-api': 'Logs API',
                 'logs-form': 'Logs Form',
-                'agent-file': 'Agent File'
+                'agent-file': 'Agent File',
+                'events-v1': 'Events v1 API',
+                'events-v1-form': 'Events v1 Form',
+                'events-api': 'Events v2 API',
+                'events-form': 'Events v2 Form'
             };
             
             const statusClass = entry.result.warning ? 'warning' : (entry.result.success ? 'success' : 'error');
@@ -167,6 +171,87 @@ class Forwardog {
                 this.showView('agent-file');
                 if (entry.request.messages) {
                     document.getElementById('agent-file-messages').value = entry.request.messages.join('\n');
+                }
+                break;
+            case 'events-v1':
+                this.showView('events-api');
+                this.switchEventApiVersion('v1');
+                if (typeof entry.request.payload === 'string') {
+                    document.getElementById('events-v1-json').value = entry.request.payload;
+                } else {
+                    document.getElementById('events-v1-json').value = JSON.stringify(entry.request.payload, null, 2);
+                }
+                break;
+            case 'events-v1-form':
+                this.showView('events-api');
+                this.switchEventApiVersion('v1');
+                switchTab('events-v1-tabs', 'form');
+                if (entry.request.payload) {
+                    const ev = entry.request.payload;
+                    document.getElementById('event-v1-title').value = ev.title || '';
+                    document.getElementById('event-v1-text').value = ev.text || '';
+                    document.getElementById('event-v1-alert-type').value = ev.alert_type || 'info';
+                    document.getElementById('event-v1-priority').value = ev.priority || 'normal';
+                    document.getElementById('event-v1-timestamp').value = ev.date_happened || '';
+                    document.getElementById('event-v1-host').value = ev.host || '';
+                    document.getElementById('event-v1-tags').value = (ev.tags || []).join(', ');
+                    document.getElementById('event-v1-aggregation-key').value = ev.aggregation_key || '';
+                    document.getElementById('event-v1-source-type').value = ev.source_type_name || '';
+                }
+                break;
+            case 'events-api':
+                this.showView('events-api');
+                this.switchEventApiVersion('v2');
+                if (typeof entry.request.payload === 'string') {
+                    document.getElementById('events-api-json').value = entry.request.payload;
+                } else {
+                    document.getElementById('events-api-json').value = JSON.stringify(entry.request.payload, null, 2);
+                }
+                break;
+            case 'events-form':
+                this.showView('events-api');
+                this.switchEventApiVersion('v2');
+                switchTab('events-api-tabs', 'form');
+                if (entry.request.payload?.data?.attributes) {
+                    const attrs = entry.request.payload.data.attributes;
+                    document.getElementById('event-title').value = attrs.title || '';
+                    document.getElementById('event-category').value = attrs.category || 'change';
+                    document.getElementById('event-message').value = attrs.message || '';
+                    document.getElementById('event-timestamp').value = attrs.timestamp || '';
+                    document.getElementById('event-host').value = attrs.host || '';
+                    document.getElementById('event-tags').value = (attrs.tags || []).join(', ');
+                    document.getElementById('event-aggregation-key').value = attrs.aggregation_key || '';
+                    
+                    this.toggleEventCategoryFields();
+                    
+                    if (attrs.category === 'change' && attrs.attributes) {
+                        if (attrs.attributes.changed_resource) {
+                            document.getElementById('event-resource-name').value = attrs.attributes.changed_resource.name || '';
+                            document.getElementById('event-resource-type').value = attrs.attributes.changed_resource.type || 'configuration';
+                        }
+                        if (attrs.attributes.author) {
+                            document.getElementById('event-author-name').value = attrs.attributes.author.name || '';
+                            document.getElementById('event-author-type').value = attrs.attributes.author.type || 'user';
+                        }
+                        if (attrs.attributes.prev_value) {
+                            document.getElementById('event-prev-value').value = JSON.stringify(attrs.attributes.prev_value, null, 2);
+                        }
+                        if (attrs.attributes.new_value) {
+                            document.getElementById('event-new-value').value = JSON.stringify(attrs.attributes.new_value, null, 2);
+                        }
+                        if (attrs.attributes.change_metadata) {
+                            document.getElementById('event-change-metadata').value = JSON.stringify(attrs.attributes.change_metadata, null, 2);
+                        }
+                    } else if (attrs.category === 'alert' && attrs.attributes) {
+                        document.getElementById('event-alert-status').value = attrs.attributes.status || 'warn';
+                        document.getElementById('event-alert-priority').value = attrs.attributes.priority || '5';
+                        if (attrs.attributes.custom) {
+                            document.getElementById('event-alert-custom').value = JSON.stringify(attrs.attributes.custom, null, 2);
+                        }
+                        if (attrs.attributes.links) {
+                            document.getElementById('event-alert-links').value = JSON.stringify(attrs.attributes.links, null, 2);
+                        }
+                    }
                 }
                 break;
         }
@@ -345,6 +430,26 @@ class Forwardog {
                     case 'agent-file':
                         this.submitAgentFile();
                         break;
+                    case 'events-api':
+                        const v1Section = document.getElementById('events-v1-section');
+                        if (v1Section && !v1Section.classList.contains('hidden')) {
+                            // v1 API
+                            const v1FormTab = document.getElementById('events-v1-tabs-form');
+                            if (v1FormTab && !v1FormTab.classList.contains('hidden')) {
+                                this.submitEventsV1Form();
+                            } else {
+                                this.submitEventsV1();
+                            }
+                        } else {
+                            // v2 API
+                            const eventsFormTab = document.getElementById('events-api-tabs-form');
+                            if (eventsFormTab && !eventsFormTab.classList.contains('hidden')) {
+                                this.submitEventsForm();
+                            } else {
+                                this.submitEventsApi();
+                            }
+                        }
+                        break;
                 }
             }
         });
@@ -398,6 +503,31 @@ class Forwardog {
         if (timestampInput) {
             timestampInput.value = now;
         }
+        
+        const eventsJson = document.getElementById('events-api-json');
+        if (eventsJson) {
+            try {
+                const payload = JSON.parse(eventsJson.value);
+                const nowIso = new Date().toISOString();
+                if (payload.data?.attributes?.timestamp !== undefined) {
+                    payload.data.attributes.timestamp = nowIso;
+                }
+                eventsJson.value = JSON.stringify(payload, null, 2);
+            } catch (e) {
+            }
+        }
+        
+        const eventsV1Json = document.getElementById('events-v1-json');
+        if (eventsV1Json) {
+            try {
+                const payload = JSON.parse(eventsV1Json.value);
+                if (payload.date_happened !== undefined) {
+                    payload.date_happened = now;
+                }
+                eventsV1Json.value = JSON.stringify(payload, null, 2);
+            } catch (e) {
+            }
+        }
     }
     
     bindNavigation() {
@@ -437,15 +567,19 @@ class Forwardog {
     
     async loadPresets() {
         try {
-            const [metricsRes, logsRes, dogstatsdRes] = await Promise.all([
+            const [metricsRes, logsRes, dogstatsdRes, eventsV1Res, eventsV2Res] = await Promise.all([
                 fetch('/api/metrics/presets'),
                 fetch('/api/logs/presets'),
-                fetch('/api/metrics/dogstatsd/examples')
+                fetch('/api/metrics/dogstatsd/examples'),
+                fetch('/api/events/v1/presets'),
+                fetch('/api/events/v2/presets')
             ]);
             
             this.presets.metrics = await metricsRes.json();
             this.presets.logs = await logsRes.json();
             this.presets.dogstatsd = await dogstatsdRes.json();
+            this.presets.eventsV1 = await eventsV1Res.json();
+            this.presets.events = await eventsV2Res.json();
             
             this.populatePresets();
         } catch (error) {
@@ -493,6 +627,26 @@ class Forwardog {
                 </div>
             `).join('');
         }
+        
+        const eventsApiMenu = document.getElementById('presets-events-api');
+        if (eventsApiMenu && this.presets.events.api_presets) {
+            eventsApiMenu.innerHTML = this.presets.events.api_presets.map((preset, idx) => `
+                <div class="preset-item" onclick="forwardog.applyPreset('events-api', ${idx})">
+                    <div class="preset-name">${preset.name}</div>
+                    <div class="preset-desc">${preset.description}</div>
+                </div>
+            `).join('');
+        }
+        
+        const eventsV1Menu = document.getElementById('presets-events-v1');
+        if (eventsV1Menu && this.presets.eventsV1 && this.presets.eventsV1.api_presets) {
+            eventsV1Menu.innerHTML = this.presets.eventsV1.api_presets.map((preset, idx) => `
+                <div class="preset-item" onclick="forwardog.applyPreset('events-v1', ${idx})">
+                    <div class="preset-name">${preset.name}</div>
+                    <div class="preset-desc">${preset.description}</div>
+                </div>
+            `).join('');
+        }
     }
     
     applyPreset(type, index) {
@@ -535,6 +689,20 @@ class Forwardog {
             if (preset.service) {
                 document.getElementById('agent-file-service').value = preset.service;
             }
+        } else if (type === 'events-api') {
+            const preset = this.presets.events.api_presets[index];
+            const payload = JSON.parse(JSON.stringify(preset.payload));
+            // Update timestamp to current ISO time for v2 API
+            if (payload.data?.attributes) {
+                payload.data.attributes.timestamp = new Date().toISOString();
+            }
+            document.getElementById('events-api-json').value = JSON.stringify(payload, null, 2);
+        } else if (type === 'events-v1') {
+            const preset = this.presets.eventsV1.api_presets[index];
+            const payload = JSON.parse(JSON.stringify(preset.payload));
+            // Update timestamp to current Unix time for v1 API
+            payload.date_happened = now;
+            document.getElementById('events-v1-json').value = JSON.stringify(payload, null, 2);
         }
         
         document.querySelectorAll('.presets-menu').forEach(menu => {
@@ -1070,6 +1238,393 @@ class Forwardog {
         } finally {
             btn.disabled = false;
             btn.innerHTML = '📝 Write to Log File';
+        }
+    }
+    
+    toggleEventCategoryFields() {
+        const category = document.getElementById('event-category').value;
+        const changeFields = document.getElementById('event-change-fields');
+        const alertFields = document.getElementById('event-alert-fields');
+        const titleInput = document.getElementById('event-title');
+        const messageInput = document.getElementById('event-message');
+        
+        if (category === 'change') {
+            changeFields.classList.remove('hidden');
+            alertFields.classList.add('hidden');
+            
+            // Update default title and message for Change events
+            if (titleInput.value.includes('Alert') || titleInput.value === '') {
+                titleInput.value = 'Test Change Event from Forwardog';
+            }
+            if (messageInput.value.includes('alert') || messageInput.value === '') {
+                messageInput.value = 'Configuration was updated via Forwardog';
+            }
+        } else {
+            changeFields.classList.add('hidden');
+            alertFields.classList.remove('hidden');
+            
+            // Update default title and message for Alert events
+            if (titleInput.value.includes('Change') || titleInput.value === '') {
+                titleInput.value = 'Test Alert Event from Forwardog';
+            }
+            if (messageInput.value.includes('Configuration') || messageInput.value === '') {
+                messageInput.value = 'An alert was triggered via Forwardog';
+            }
+        }
+    }
+    
+    setEventFormTimestampNow() {
+        const timestampInput = document.getElementById('event-timestamp');
+        if (timestampInput) {
+            timestampInput.value = new Date().toISOString();
+        }
+    }
+    
+    setEventV1FormTimestampNow() {
+        const timestampInput = document.getElementById('event-v1-timestamp');
+        if (timestampInput) {
+            timestampInput.value = Math.floor(Date.now() / 1000);
+        }
+    }
+    
+    insertEventV1NowTimestamp() {
+        const textarea = document.getElementById('events-v1-json');
+        if (textarea) {
+            const now = Math.floor(Date.now() / 1000);
+            try {
+                const json = JSON.parse(textarea.value);
+                if (json.date_happened !== undefined) {
+                    json.date_happened = now;
+                }
+                textarea.value = JSON.stringify(json, null, 2);
+            } catch (e) {
+                alert(`Current timestamp (Unix): ${now}`);
+            }
+        }
+    }
+    
+    switchEventApiVersion(version) {
+        const v1Section = document.getElementById('events-v1-section');
+        const v2Section = document.getElementById('events-v2-section');
+        const tabs = document.querySelectorAll('#events-api-version-tabs .panel-tab');
+        
+        tabs.forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === version);
+        });
+        
+        if (version === 'v1') {
+            v1Section.classList.remove('hidden');
+            v2Section.classList.add('hidden');
+            this.currentEventApiVersion = 'v1';
+        } else {
+            v1Section.classList.add('hidden');
+            v2Section.classList.remove('hidden');
+            this.currentEventApiVersion = 'v2';
+        }
+    }
+    
+    insertEventNowTimestamp() {
+        const textarea = document.getElementById('events-api-json');
+        if (textarea) {
+            const now = new Date().toISOString();
+            try {
+                const json = JSON.parse(textarea.value);
+                if (json.data?.attributes?.timestamp !== undefined) {
+                    json.data.attributes.timestamp = now;
+                }
+                textarea.value = JSON.stringify(json, null, 2);
+            } catch (e) {
+                alert(`Current timestamp (ISO): ${now}`);
+            }
+        }
+    }
+    
+    async submitEventsV1() {
+        const btn = document.getElementById('btn-submit-events-v1');
+        const jsonInput = document.getElementById('events-v1-json');
+        
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Sending...';
+            
+            const payload = JSON.parse(jsonInput.value);
+            
+            const response = await fetch('/api/events/v1/submit-json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payload })
+            });
+            
+            const result = await response.json();
+            this.addResult(result);
+            this.addToHistory('events-v1', { payload }, result);
+            
+        } catch (error) {
+            const errorResult = {
+                success: false,
+                message: `Error: ${error.message}`,
+                error_hint: 'Check JSON syntax. v1 API requires: title, text'
+            };
+            this.addResult(errorResult);
+            this.addToHistory('events-v1', { payload: jsonInput.value }, errorResult);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '📤 Submit Event (v1)';
+        }
+    }
+    
+    async submitEventsV1Form() {
+        const btn = document.getElementById('btn-submit-events-v1-form');
+        
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Sending...';
+            
+            const title = document.getElementById('event-v1-title').value;
+            const text = document.getElementById('event-v1-text').value;
+            const alertType = document.getElementById('event-v1-alert-type').value;
+            const priority = document.getElementById('event-v1-priority').value;
+            const timestampInput = document.getElementById('event-v1-timestamp').value;
+            const host = document.getElementById('event-v1-host').value;
+            const tagsInput = document.getElementById('event-v1-tags').value;
+            const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t) : [];
+            const aggregationKey = document.getElementById('event-v1-aggregation-key').value;
+            const sourceType = document.getElementById('event-v1-source-type').value;
+            
+            const payload = {
+                title,
+                text,
+                priority,
+                alert_type: alertType
+            };
+            
+            if (timestampInput) {
+                payload.date_happened = parseInt(timestampInput);
+            }
+            
+            if (host) {
+                payload.host = host;
+            }
+            
+            if (tags.length > 0) {
+                payload.tags = tags;
+            }
+            
+            if (aggregationKey) {
+                payload.aggregation_key = aggregationKey;
+            }
+            
+            if (sourceType) {
+                payload.source_type_name = sourceType;
+            }
+            
+            const response = await fetch('/api/events/v1/submit-json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payload })
+            });
+            
+            const result = await response.json();
+            this.addResult(result);
+            this.addToHistory('events-v1-form', { payload }, result);
+            
+        } catch (error) {
+            const errorResult = {
+                success: false,
+                message: `Error: ${error.message}`
+            };
+            this.addResult(errorResult);
+            this.addToHistory('events-v1-form', {}, errorResult);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '📤 Submit Event (v1)';
+        }
+    }
+    
+    async submitEventsApi() {
+        const btn = document.getElementById('btn-submit-events-api');
+        const jsonInput = document.getElementById('events-api-json');
+        
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Sending...';
+            
+            const payload = JSON.parse(jsonInput.value);
+            
+            const response = await fetch('/api/events/v2/submit-json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payload })
+            });
+            
+            const result = await response.json();
+            this.addResult(result);
+            this.addToHistory('events-api', { payload }, result);
+            
+        } catch (error) {
+            const errorResult = {
+                success: false,
+                message: `Error: ${error.message}`,
+                error_hint: 'Check JSON syntax. v2 API requires: data.type="event", data.attributes.title, data.attributes.category'
+            };
+            this.addResult(errorResult);
+            this.addToHistory('events-api', { payload: jsonInput.value }, errorResult);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '📤 Submit Event (v2)';
+        }
+    }
+    
+    async submitEventsForm() {
+        const btn = document.getElementById('btn-submit-events-form');
+        
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Sending...';
+            
+            const title = document.getElementById('event-title').value;
+            const category = document.getElementById('event-category').value;
+            const message = document.getElementById('event-message').value;
+            const timestampInput = document.getElementById('event-timestamp').value.trim();
+            const host = document.getElementById('event-host').value;
+            const tagsInput = document.getElementById('event-tags').value;
+            const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t) : [];
+            const aggregationKey = document.getElementById('event-aggregation-key').value;
+            const timestamp = timestampInput || new Date().toISOString();
+            
+            // Build v2 API payload
+            const attributes = {
+                title,
+                category,
+                timestamp
+            };
+            
+            if (message) {
+                attributes.message = message;
+            }
+            
+            if (host) {
+                attributes.host = host;
+            }
+            
+            if (tags.length > 0) {
+                attributes.tags = tags;
+            }
+            
+            if (aggregationKey) {
+                attributes.aggregation_key = aggregationKey;
+            }
+            
+            // Category-specific attributes
+            if (category === 'change') {
+                const resourceName = document.getElementById('event-resource-name').value;
+                const resourceType = document.getElementById('event-resource-type').value;
+                const authorName = document.getElementById('event-author-name').value;
+                const authorType = document.getElementById('event-author-type').value;
+                const prevValueInput = document.getElementById('event-prev-value').value.trim();
+                const newValueInput = document.getElementById('event-new-value').value.trim();
+                const changeMetadataInput = document.getElementById('event-change-metadata').value.trim();
+                
+                attributes.attributes = {
+                    changed_resource: {
+                        name: resourceName,
+                        type: resourceType
+                    }
+                };
+                
+                if (authorName) {
+                    attributes.attributes.author = {
+                        name: authorName,
+                        type: authorType
+                    };
+                }
+                
+                // Parse and add prev_value if provided
+                if (prevValueInput) {
+                    try {
+                        attributes.attributes.prev_value = JSON.parse(prevValueInput);
+                    } catch (e) {
+                        throw new Error('Invalid JSON in Previous Value field');
+                    }
+                }
+                
+                // Parse and add new_value if provided
+                if (newValueInput) {
+                    try {
+                        attributes.attributes.new_value = JSON.parse(newValueInput);
+                    } catch (e) {
+                        throw new Error('Invalid JSON in New Value field');
+                    }
+                }
+                
+                // Parse and add change_metadata if provided
+                if (changeMetadataInput) {
+                    try {
+                        attributes.attributes.change_metadata = JSON.parse(changeMetadataInput);
+                    } catch (e) {
+                        throw new Error('Invalid JSON in Change Metadata field');
+                    }
+                }
+            } else if (category === 'alert') {
+                const alertStatus = document.getElementById('event-alert-status').value;
+                const alertPriority = document.getElementById('event-alert-priority').value;
+                const alertCustomInput = document.getElementById('event-alert-custom').value.trim();
+                const alertLinksInput = document.getElementById('event-alert-links').value.trim();
+                
+                attributes.attributes = {
+                    status: alertStatus,
+                    priority: alertPriority  // Must be string: "1", "2", "3", "4", "5"
+                };
+                
+                // Parse and add custom data if provided
+                if (alertCustomInput) {
+                    try {
+                        attributes.attributes.custom = JSON.parse(alertCustomInput);
+                    } catch (e) {
+                        throw new Error('Invalid JSON in Custom Data field');
+                    }
+                }
+                
+                // Parse and add links if provided
+                if (alertLinksInput) {
+                    try {
+                        const links = JSON.parse(alertLinksInput);
+                        if (Array.isArray(links) && links.length > 0) {
+                            attributes.attributes.links = links;
+                        }
+                    } catch (e) {
+                        throw new Error('Invalid JSON in Links field');
+                    }
+                }
+            }
+            
+            const payload = {
+                data: {
+                    type: 'event',
+                    attributes
+                }
+            };
+            
+            const response = await fetch('/api/events/api/submit-json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payload })
+            });
+            
+            const result = await response.json();
+            this.addResult(result);
+            this.addToHistory('events-form', { payload }, result);
+            
+        } catch (error) {
+            const errorResult = {
+                success: false,
+                message: `Error: ${error.message}`
+            };
+            this.addResult(errorResult);
+            this.addToHistory('events-form', {}, errorResult);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '📤 Submit Event';
         }
     }
     

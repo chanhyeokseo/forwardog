@@ -117,11 +117,47 @@ class SubmitResponse(BaseModel):
     error_hint: Optional[str] = None
 
 
+class EventCategory(str, Enum):
+    CHANGE = "change"
+    ALERT = "alert"
+
+
+class EventAlertStatus(str, Enum):
+    WARN = "warn"
+    ERROR = "error"
+    OK = "ok"
+
+
+class EventAlertPriority(str, Enum):
+    P1 = "1"
+    P2 = "2"
+    P3 = "3"
+    P4 = "4"
+    P5 = "5"
+
+
+class EventChangeResourceType(str, Enum):
+    FEATURE_FLAG = "feature_flag"
+    CONFIGURATION = "configuration"
+
+
+class EventAuthorType(str, Enum):
+    USER = "user"
+    SYSTEM = "system"
+    API = "api"
+    AUTOMATION = "automation"
+
+
+class EventsJsonRequest(BaseModel):
+    payload: dict[str, Any]
+
+
 class HistoryEntryType(str, Enum):
     METRICS_API = "metrics_api"
     METRICS_DOGSTATSD = "metrics_dogstatsd"
     LOGS_API = "logs_api"
     LOGS_AGENT_FILE = "logs_agent_file"
+    EVENTS_API = "events_api"
 
 
 class HistoryEntry(BaseModel):

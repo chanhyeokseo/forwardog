@@ -31,6 +31,18 @@ class Settings(BaseSettings):
         return site_mapping.get(self.dd_site, f"https://http-intake.logs.{self.dd_site}")
     
     @property
+    def dd_events_url(self) -> str:
+        site_mapping = {
+            "datadoghq.com": "https://event-management-intake.datadoghq.com",
+            "datadoghq.eu": "https://event-management-intake.datadoghq.eu",
+            "us3.datadoghq.com": "https://event-management-intake.us3.datadoghq.com",
+            "us5.datadoghq.com": "https://event-management-intake.us5.datadoghq.com",
+            "ap1.datadoghq.com": "https://event-management-intake.ap1.datadoghq.com",
+            "ddog-gov.com": "https://event-management-intake.ddog-gov.com",
+        }
+        return site_mapping.get(self.dd_site, f"https://event-management-intake.{self.dd_site}")
+    
+    @property
     def default_tags_list(self) -> list[str]:
         return ["source:forwardog"]
     

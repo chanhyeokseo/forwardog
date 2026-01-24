@@ -82,6 +82,13 @@
                             </div>
                         </div>
                         <div class="nav-section">
+                            <div class="nav-title">Events</div>
+                            <div class="nav-item" data-view="events-api">
+                                <span class="nav-item-icon">🎯</span>
+                                <span class="nav-item-label">API Submission</span>
+                            </div>
+                        </div>
+                        <div class="nav-section">
                             <div class="nav-title">Tools</div>
                             <div class="nav-item" data-view="history">
                                 <span class="nav-item-icon">📜</span>
@@ -384,6 +391,317 @@ Processing request ID 12345</textarea>
                                 <button id="btn-submit-agent-file" class="btn btn-primary btn-block" onclick="forwardog.submitAgentFile()">
                                     📝 Write to Log File
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Events API View -->
+                    <div id="view-events-api" class="view-content hidden">
+                        <div class="panel-header">
+                            <h2 class="panel-title">Events API Submission</h2>
+                            <div class="panel-tabs" id="events-api-version-tabs">
+                                <button class="panel-tab" data-tab="v1" onclick="forwardog.switchEventApiVersion('v1')">v1</button>
+                                <button class="panel-tab active" data-tab="v2" onclick="forwardog.switchEventApiVersion('v2')">v2 (latest)</button>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <!-- V1 API Section -->
+                            <div id="events-v1-section" class="hidden">
+                                <div class="panel-tabs" id="events-v1-tabs" style="margin-bottom: 16px;">
+                                    <button class="panel-tab active" data-tab="json" onclick="switchTab('events-v1-tabs', 'json')">JSON</button>
+                                    <button class="panel-tab" data-tab="form" onclick="switchTab('events-v1-tabs', 'form')">Form</button>
+                                </div>
+                                
+                                <!-- V1 JSON Tab -->
+                                <div id="events-v1-tabs-json" class="tab-content">
+                                    <div class="editor-area">
+                                        <div class="editor-toolbar">
+                                            <div class="presets-dropdown">
+                                                <button class="btn btn-secondary btn-sm" onclick="forwardog.togglePresets('presets-events-v1')">
+                                                    📋 Presets
+                                                </button>
+                                                <div id="presets-events-v1" class="presets-menu"></div>
+                                            </div>
+                                            <div class="editor-actions">
+                                                <span class="shortcut-hint">Ctrl+Enter to submit</span>
+                                                <button class="btn btn-secondary btn-sm" onclick="forwardog.formatJson('events-v1-json')">Format</button>
+                                                <button class="btn btn-secondary btn-sm" onclick="forwardog.insertEventV1NowTimestamp()">⏱️ Now</button>
+                                            </div>
+                                        </div>
+                                        <textarea id="events-v1-json" class="form-textarea" placeholder='{"title": "...", "text": "..."}'>{
+  "title": "Test Event from Forwardog",
+  "text": "This is a test event submitted via Forwardog v1 API.",
+  "date_happened": {{ (config.dd_site | length) * 0 + 1737158400 }},
+  "priority": "normal",
+  "alert_type": "info",
+  "host": "forwardog-test",
+  "tags": ["env:test", "source:forwardog"]
+}</textarea>
+                                    </div>
+                                    <div class="mt-4">
+                                        <button id="btn-submit-events-v1" class="btn btn-primary btn-block" onclick="forwardog.submitEventsV1()">
+                                            📤 Submit Event (v1)
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- V1 Form Tab -->
+                                <div id="events-v1-tabs-form" class="tab-content hidden">
+                                    <div class="form-group">
+                                        <label class="form-label">Title *</label>
+                                        <input type="text" id="event-v1-title" class="form-input" value="Test Event from Forwardog" placeholder="Event title">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Text * (supports markdown with %%% delimiters)</label>
+                                        <textarea id="event-v1-text" class="form-textarea" style="min-height: 100px;" placeholder="Event body (max 4000 chars)">This is a test event submitted via Forwardog v1 API.</textarea>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Alert Type</label>
+                                            <select id="event-v1-alert-type" class="form-select">
+                                                <option value="info">Info</option>
+                                                <option value="warning">Warning</option>
+                                                <option value="error">Error</option>
+                                                <option value="success">Success</option>
+                                                <option value="user_update">User Update</option>
+                                                <option value="recommendation">Recommendation</option>
+                                                <option value="snapshot">Snapshot</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Priority</label>
+                                            <select id="event-v1-priority" class="form-select">
+                                                <option value="normal">Normal</option>
+                                                <option value="low">Low</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Timestamp (Unix)</label>
+                                        <div style="display: flex; gap: 8px;">
+                                            <input type="number" id="event-v1-timestamp" class="form-input" placeholder="Unix timestamp (seconds)" style="flex: 1;">
+                                            <button type="button" class="btn btn-secondary" onclick="forwardog.setEventV1FormTimestampNow()">⏱️ Now</button>
+                                        </div>
+                                        <small style="color: var(--text-muted); font-size: 0.75rem;">Leave empty to use current time. Max 18 hours in the past.</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Host</label>
+                                        <input type="text" id="event-v1-host" class="form-input" value="forwardog-test" placeholder="hostname">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Tags (comma-separated)</label>
+                                        <input type="text" id="event-v1-tags" class="form-input" value="env:test,source:forwardog" placeholder="env:prod,service:myapp">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Aggregation Key</label>
+                                        <input type="text" id="event-v1-aggregation-key" class="form-input" placeholder="Key for event grouping (max 100 chars)">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Source Type Name</label>
+                                        <input type="text" id="event-v1-source-type" class="form-input" placeholder="e.g., nagios, jenkins, chef, puppet">
+                                    </div>
+                                    <div class="mt-4">
+                                        <button id="btn-submit-events-v1-form" class="btn btn-primary btn-block" onclick="forwardog.submitEventsV1Form()">
+                                            📤 Submit Event (v1)
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- V2 API Section -->
+                            <div id="events-v2-section">
+                                <div class="panel-tabs" id="events-api-tabs" style="margin-bottom: 16px;">
+                                    <button class="panel-tab active" data-tab="json" onclick="switchTab('events-api-tabs', 'json')">JSON</button>
+                                    <button class="panel-tab" data-tab="form" onclick="switchTab('events-api-tabs', 'form')">Form</button>
+                                </div>
+                                
+                                <!-- V2 JSON Tab -->
+                                <div id="events-api-tabs-json" class="tab-content">
+                                    <div class="editor-area">
+                                        <div class="editor-toolbar">
+                                            <div class="presets-dropdown">
+                                                <button class="btn btn-secondary btn-sm" onclick="forwardog.togglePresets('presets-events-api')">
+                                                    📋 Presets
+                                                </button>
+                                                <div id="presets-events-api" class="presets-menu"></div>
+                                            </div>
+                                            <div class="editor-actions">
+                                                <span class="shortcut-hint">Ctrl+Enter to submit</span>
+                                                <button class="btn btn-secondary btn-sm" onclick="forwardog.formatJson('events-api-json')">Format</button>
+                                                <button class="btn btn-secondary btn-sm" onclick="forwardog.insertEventNowTimestamp()">⏱️ Now</button>
+                                            </div>
+                                        </div>
+                                        <textarea id="events-api-json" class="form-textarea" placeholder='{"data": {"type": "event", ...}}'>{
+  "data": {
+    "type": "event",
+    "attributes": {
+      "title": "Test Change Event from Forwardog",
+      "category": "change",
+      "message": "Configuration was updated via Forwardog",
+      "host": "forwardog-test",
+      "tags": ["env:test", "source:forwardog"],
+      "attributes": {
+        "author": {
+          "name": "forwardog-user",
+          "type": "user"
+        },
+        "changed_resource": {
+          "name": "test-config",
+          "type": "configuration"
+        }
+      }
+    }
+  }
+}</textarea>
+                                    </div>
+                                    <div class="mt-4">
+                                        <button id="btn-submit-events-api" class="btn btn-primary btn-block" onclick="forwardog.submitEventsApi()">
+                                            📤 Submit Event (v2)
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- V2 Form Tab -->
+                                <div id="events-api-tabs-form" class="tab-content hidden">
+                                    <p class="mb-4" style="font-size: 0.85rem; color: var(--text-muted);">
+                                        ✅ <strong>change</strong> and <strong>alert</strong> categories are GA. Use JSON tab for full control.
+                                    </p>
+                                <div class="form-group">
+                                    <label class="form-label">Title *</label>
+                                    <input type="text" id="event-title" class="form-input" value="Test Change Event from Forwardog" placeholder="Event title (max 500 chars)">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Category *</label>
+                                    <select id="event-category" class="form-select" onchange="forwardog.toggleEventCategoryFields()">
+                                        <option value="change">Change</option>
+                                        <option value="alert">Alert</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Message</label>
+                                    <textarea id="event-message" class="form-textarea" style="min-height: 80px;" placeholder="Event description (max 4000 chars)">Configuration was updated via Forwardog</textarea>
+                                </div>
+                                
+                                <!-- Change-specific fields -->
+                                <div id="event-change-fields">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Changed Resource Name *</label>
+                                            <input type="text" id="event-resource-name" class="form-input" value="test-config" placeholder="Resource name">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Resource Type *</label>
+                                            <select id="event-resource-type" class="form-select">
+                                                <option value="configuration">Configuration</option>
+                                                <option value="feature_flag">Feature Flag</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Author Name</label>
+                                            <input type="text" id="event-author-name" class="form-input" value="forwardog-user" placeholder="Author name">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Author Type</label>
+                                            <select id="event-author-type" class="form-select">
+                                                <option value="user">User</option>
+                                                <option value="system">System</option>
+                                                <option value="api">API</option>
+                                                <option value="automation">Automation</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Previous Value (JSON)</label>
+                                            <textarea id="event-prev-value" class="form-textarea" style="min-height: 60px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;" placeholder='{"enabled": false}'>{"enabled": false}</textarea>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">New Value (JSON)</label>
+                                            <textarea id="event-new-value" class="form-textarea" style="min-height: 60px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;" placeholder='{"enabled": true}'>{"enabled": true}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Change Metadata (JSON)</label>
+                                        <textarea id="event-change-metadata" class="form-textarea" style="min-height: 60px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;" placeholder='{"reason": "...", "ticket": "..."}'>{
+  "reason": "Manual update",
+  "ticket": "TICKET-123"
+}</textarea>
+                                        <small style="color: var(--text-muted); font-size: 0.75rem;">Free-form JSON with change details (max 100 properties, 10 levels deep)</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Alert-specific fields -->
+                                <div id="event-alert-fields" class="hidden">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Status *</label>
+                                            <select id="event-alert-status" class="form-select">
+                                                <option value="warn">Warning</option>
+                                                <option value="error">Error</option>
+                                                <option value="ok">OK (Recovery)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Priority</label>
+                                            <select id="event-alert-priority" class="form-select">
+                                                <option value="5">P5 (Lowest)</option>
+                                                <option value="4">P4</option>
+                                                <option value="3" selected>P3</option>
+                                                <option value="2">P2</option>
+                                                <option value="1">P1 (Highest)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Custom Data (JSON)</label>
+                                        <textarea id="event-alert-custom" class="form-textarea" style="min-height: 60px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;" placeholder='{"metric": "...", "threshold": 80}'>{
+  "metric": "system.cpu.usage",
+  "threshold": 80,
+  "current_value": 95
+}</textarea>
+                                        <small style="color: var(--text-muted); font-size: 0.75rem;">Free-form JSON with alert details (max 100 properties, 10 levels deep)</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Links (JSON Array)</label>
+                                        <textarea id="event-alert-links" class="form-textarea" style="min-height: 80px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;" placeholder='[{"category": "runbook", "title": "...", "url": "..."}]'>[
+  {
+    "category": "runbook",
+    "title": "Alert Runbook",
+    "url": "https://example.com/"
+  }
+]</textarea>
+                                        <small style="color: var(--text-muted); font-size: 0.75rem;">Max 20 links. Categories: runbook, documentation, dashboard</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Timestamp (ISO 8601)</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="text" id="event-timestamp" class="form-input" placeholder="2026-01-22T12:00:00.000Z" style="flex: 1;">
+                                        <button type="button" class="btn btn-secondary" onclick="forwardog.setEventFormTimestampNow()">⏱️ Now</button>
+                                    </div>
+                                    <small style="color: var(--text-muted); font-size: 0.75rem;">Leave empty to use current time. Max 18 hours in the past.</small>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Host</label>
+                                    <input type="text" id="event-host" class="form-input" value="forwardog-test" placeholder="hostname (max 255 chars)">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Tags (comma-separated)</label>
+                                    <input type="text" id="event-tags" class="form-input" value="env:test,source:forwardog" placeholder="env:prod,service:myapp (max 100 tags)">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Aggregation Key</label>
+                                    <input type="text" id="event-aggregation-key" class="form-input" placeholder="Key for event correlation (max 100 chars)">
+                                </div>
+                                    <div class="mt-4">
+                                        <button id="btn-submit-events-form" class="btn btn-primary btn-block" onclick="forwardog.submitEventsForm()">
+                                            📤 Submit Event (v2)
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

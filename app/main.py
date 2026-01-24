@@ -6,7 +6,7 @@ from pathlib import Path
 import httpx
 
 from app.config import settings
-from app.routers import metrics, logs, history
+from app.routers import metrics, logs, events, history
 
 app = FastAPI(
     title="Forwardog",
@@ -20,6 +20,7 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 app.include_router(metrics.router)
 app.include_router(logs.router)
+app.include_router(events.router)
 app.include_router(history.router)
 
 
