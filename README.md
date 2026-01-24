@@ -4,9 +4,9 @@
 
 <h1 align="center">Forwardog</h1>
 
-<p align="center"><strong>Datadog Metrics & Logs Submission Test Tool</strong></p>
+<p align="center"><strong>Datadog Submission Test Tool</strong></p>
 
-Forwardog is a Web UI service that helps you test and validate Datadog metrics and log submission paths. It provides an intuitive interface for sending metrics and logs via various methods.
+Forwardog is a Web UI service that helps you test and validate Datadog metrics, logs, and events submission paths. It provides an intuitive interface for sending data via various methods.
 
 ![Forwardog Screenshot](forwardog.png)
 
@@ -19,6 +19,9 @@ Forwardog is a Web UI service that helps you test and validate Datadog metrics a
 ### Logs Submission
 - **API-based** - Submit logs via Datadog HTTP intake API
 - **Agent File** - Write logs to a file for Datadog Agent collection
+
+### Event Submission
+- Submit events via Datadog Events API v1 (`/api/v1/events`) and v2 (`/api/v2/events`)
 
 ### Validation & Automation
 - **API Key Validation** - Automatic validation on startup
@@ -147,6 +150,10 @@ Open your browser and navigate to: **http://localhost:8000**
 | `/api/logs/api/submit-json` | POST | Submit raw JSON logs |
 | `/api/logs/agent-file/submit` | POST | Write logs to file |
 | `/api/logs/presets` | GET | Get log presets |
+| `/api/events/v1/submit-json` | POST | Submit event via v1 API |
+| `/api/events/v2/submit-json` | POST | Submit event via v2 API |
+| `/api/events/v1/presets` | GET | Get v1 event presets |
+| `/api/events/v2/presets` | GET | Get v2 event presets |
 | `/api/history/` | GET | Get submission history |
 
 ## Contributing
