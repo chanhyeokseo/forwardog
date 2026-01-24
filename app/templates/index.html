@@ -822,7 +822,7 @@ Processing request ID 12345</textarea>
                 this.targetValue = this.baseY;
                 this.values = [];
                 this.updateCounter = 0;
-                this.updateInterval = 25 + Math.floor(Math.random() * 25);
+                this.updateInterval = 15 + Math.floor(Math.random() * 20);
                 this.pattern = Math.floor(Math.random() * 4);
                 this.patternPhase = 0;
                 
@@ -932,7 +932,7 @@ Processing request ID 12345</textarea>
         
         let lastTime = 0;
         function animate(time) {
-            if (time - lastTime > 80) {
+            if (time - lastTime > 50) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
                 drawGrid();
